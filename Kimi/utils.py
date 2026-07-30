@@ -7,20 +7,65 @@ from settings import *
 _sprite_cache = {}
 
 
-def load_sprite(name, size=None):
-    """Загружает спрайт из assets/. Если нет — возвращает None."""
+def load_image(name, size=None):
+    """Загружает изображение из assets/. Если нет — возвращает None."""
     global _sprite_cache
-    if name in _sprite_cache:
-        return _sprite_cache[name]
+    cache_key = f"{name}_{size}" if size else name
+    if cache_key in _sprite_cache:
+        return _sprite_cache[cache_key]
 
     path = os.path.join(ASSETS_DIR, f"{name}.png")
     if os.path.exists(path):
+        # Загружаем с лучшим качеством цвета
         img = pygame.image.load(path).convert_alpha()
         if size:
-            img = pygame.transform.scale(img, size)
-        _sprite_cache[name] = img
+            # Используем smoothscale для качественного масштабирования
+            img = pygame.transform.smoothscale(img, size)
+        _sprite_cache[cache_key] = img
         return img
     return None
+
+
+def load_sprite(name, size=None):
+    """Загружает спрайт из assets/. Если нет — возвращает None."""
+    global _sprite_cache
+    cache_key = f"{name}_{size}" if size else name
+    if cache_key in _sprite_cache:
+        return _sprite_cache[cache_key]
+
+    path = os.path.join(ASSETS_DIR, f"{name}.png")
+    if os.path.exists(path):
+        # Загружаем с лучшим качеством цвета
+        img = pygame.image.load(path).convert_alpha()
+        if size:
+            # Используем smoothscale для качественного масштабирования
+            img = pygame.transform.smoothscale(img, size)
+        _sprite_cache[cache_key] = img
+        return img
+    return None
+
+
+def apply_sharpen(surface):
+    """Применяет фильтр резкости к изображению для улучшения чёткости."""
+    width, height = surface.get_size()
+
+    # Создаём новую поверхность с тем же размером
+    result = surface.copy()
+
+    # Для очень маленьких изображений используем простой метод усиления контраста краёв
+    if width <= 64 and height <= 64:
+        # Создаём слегка увеличенную копию и накладываем с BLEND_MAX для подчёркивания краёв
+        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            temp = surface.copy()
+            temp.set_alpha(80)
+            result.blit(temp, (dx, dy), special_flags=pygame.BLEND_RGB_MAX)
+
+        # Добавляем центральную копию для усиления оригинала
+        center = surface.copy()
+        center.set_alpha(180)
+        result.blit(center, (0, 0), special_flags=pygame.BLEND_ADD)
+
+    return result
 
 
 def circle_collision(a, b):
@@ -39,7 +84,7 @@ def draw_text(surface, text, size, x, y, color=COLOR_WHITE, center=True, glow=Fa
         rect.center = (x, y)
     else:
         rect.topleft = (x, y)
-    
+
     if glow:
         gc = glow_color if glow_color else color
         for offset in range(glow_radius, 0, -1):
@@ -48,7 +93,7 @@ def draw_text(surface, text, size, x, y, color=COLOR_WHITE, center=True, glow=Fa
             glow_surf.set_alpha(alpha)
             glow_rect = glow_surf.get_rect(center=rect.center)
             surface.blit(glow_surf, glow_rect)
-    
+
     surface.blit(label, rect)
     return rect
 

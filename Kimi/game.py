@@ -12,14 +12,23 @@ from particle import ParticleSystem
 class Game:
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode(
-            (SCREEN_WIDTH, SCREEN_HEIGHT),
-            pygame.FULLSCREEN | pygame.SCALED
-        )
+        # Получаем информацию о дисплее для правильного полноэкранного режима
+        display_info = pygame.display.Info()
+        screen_width = display_info.current_w
+        screen_height = display_info.current_h
+
+        # Создаем окно в полноэкранном режиме с явным разрешением
+        self.screen = pygame.display.set_mode((screen_width, screen_height), pygame.FULLSCREEN)
+
+        global SCREEN_WIDTH, SCREEN_HEIGHT
+        SCREEN_WIDTH, SCREEN_HEIGHT = screen_width, screen_height
         pygame.display.set_caption(TITLE)
         self.clock = pygame.time.Clock()
         self.running = True
         self.state = "menu"
+
+        # Пересчитываем размеры спрайтов с учётом фактического разрешения экрана
+        scale_factor = SCREEN_WIDTH / 1920.0
 
         self.stars = [Star(layer=random.choice([1, 1, 1, 2, 2, 3])) for _ in range(300)]
         self.particles = ParticleSystem()
@@ -43,7 +52,7 @@ class Game:
 
         self.btn_resume = None
         self.btn_quit = None
-        
+
         self.combo_count = 0
         self.combo_timer = 0
         self.combo_multiplier = 1.0
@@ -110,26 +119,26 @@ class Game:
                 dy = bullet.y - enemy.y
                 if math.hypot(dx, dy) < bullet.radius + enemy.radius:
                     self.particles.spawn_hit(bullet.x, bullet.y, COLOR_YELLOW, 5)
-                    
+
                     if enemy.hit(bullet.damage):
                         self.particles.spawn_explosion(enemy.x, enemy.y, enemy.color, 22)
                         self.particles.spawn_sparks(enemy.x, enemy.y, COLOR_WHITE, 10)
                         self.particles.spawn_smoke(enemy.x, enemy.y, enemy.color, 6)
                         self.particles.spawn_debris(enemy.x, enemy.y, enemy.color, 5)
-                        
+
                         self.combo_count += 1
                         self.combo_timer = pygame.time.get_ticks()
                         self.update_combo_multiplier()
-                        
+
                         score_gain = int(enemy.score * self.combo_multiplier)
                         self.player.score += score_gain
-                        
+
                         self.floating_texts.append({
                             'text': f"+{score_gain}" + (f" x{self.combo_multiplier:.1f}" if self.combo_multiplier > 1 else ""),
                             'x': enemy.x, 'y': enemy.y,
                             'life': 60, 'color': COLOR_YELLOW if self.combo_multiplier == 1 else COLOR_GOLD, 'size': 22
                         })
-                        
+
                         self.shake.shake(4 if enemy.etype != 'boss' else 12)
 
                         if random.random() < 0.15:
@@ -179,7 +188,7 @@ class Game:
                 self.particles.spawn_explosion(pu.x, pu.y, pu.data['color'], 12)
                 self.particles.spawn_sparks(pu.x, pu.y, COLOR_WHITE, 8)
                 self.shake.shake(3)
-                
+
                 text = ""
                 if pu.type == 'weapon': text = "WEAPON UP!"
                 elif pu.type == 'life': text = "+1 LIFE"
@@ -198,7 +207,7 @@ class Game:
 
     def update(self):
         self.shake.update()
-        
+
         for star in self.stars:
             star.update()
         self.particles.update()
@@ -279,7 +288,7 @@ class Game:
                       22, x + shadow, y + shadow, (0, 0, 0), center=False)
             draw_text(self.screen, f"DRONE: {self.player.drone.level}/{self.player.drone.MAX_LEVEL}",
                       22, x, y, dcol, center=False)
-        
+
         if self.combo_count >= 2:
             combo_y = SCREEN_HEIGHT - 80
             combo_text = f"{self.combo_count}x COMBO"
