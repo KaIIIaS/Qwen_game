@@ -1,6 +1,10 @@
-import pygame
+"""Дрон-помощник."""
 import math
 import random
+
+import pygame
+
+import settings
 from settings import *
 from bullet import Bullet
 from utils import load_sprite, draw_glow
@@ -22,10 +26,10 @@ class Drone:
         self.angle = 0
 
     def update(self):
-        target_x = self.player.x + self.side * DRONE_OFFSET
-        target_y = self.player.y + 10
-        self.x += (target_x - self.x) * 0.12
-        self.y += (target_y - self.y) * 0.12
+        tx = self.player.x + self.side * DRONE_OFFSET
+        ty = self.player.y + 10
+        self.x += (tx - self.x) * 0.12
+        self.y += (ty - self.y) * 0.12
         self.pulse += 0.15
         self.angle += 3
 
@@ -36,75 +40,55 @@ class Drone:
             return []
         self.last_shot = now
 
-        bullets = []
+        b = []
         L = self.level
-
         if L == 1:
-            bullets.append(Bullet(self.x, self.y - 14, 1, BULLET_SPEED - 1, 'normal', COLOR_GREEN, 4))
-
+            b.append(Bullet(self.x, self.y - 14, 1, BULLET_SPEED - 1, "normal", COLOR_GREEN, 4))
         elif L == 2:
-            bullets.append(Bullet(self.x - 10, self.y - 12, 1, BULLET_SPEED, 'normal', COLOR_GREEN, 4))
-            bullets.append(Bullet(self.x + 10, self.y - 12, 1, BULLET_SPEED, 'normal', COLOR_GREEN, 4))
-
+            b.append(Bullet(self.x - 10, self.y - 12, 1, BULLET_SPEED, "normal", COLOR_GREEN, 4))
+            b.append(Bullet(self.x + 10, self.y - 12, 1, BULLET_SPEED, "normal", COLOR_GREEN, 4))
         elif L == 3:
-            for ox in [-12, 0, 12]:
-                bullets.append(Bullet(self.x + ox, self.y - 14, 1, BULLET_SPEED + 3, 'laser', (100, 255, 100), 3))
-
+            for ox in (-12, 0, 12):
+                b.append(Bullet(self.x + ox, self.y - 14, 1, BULLET_SPEED + 3, "laser", (100, 255, 100), 3))
         elif L == 4:
-            bullets.append(Bullet(self.x - 14, self.y - 12, 2, BULLET_SPEED + 2, 'plasma', COLOR_CYAN, 7))
-            bullets.append(Bullet(self.x + 14, self.y - 12, 2, BULLET_SPEED + 2, 'plasma', COLOR_CYAN, 7))
-
+            for ox in (-14, 14):
+                b.append(Bullet(self.x + ox, self.y - 12, 2, BULLET_SPEED + 2, "plasma", COLOR_CYAN, 7))
         elif L == 5:
-            for ang in [-15, 0, 15]:
-                rad = math.radians(ang)
-                b = Bullet(self.x, self.y - 10, 1, BULLET_SPEED, 'spread', COLOR_GREEN, 5)
-                b.vx = math.sin(rad) * 2.5
-                bullets.append(b)
-
+            for ang in (-15, 0, 15):
+                bb = Bullet(self.x, self.y - 10, 1, BULLET_SPEED, "spread", COLOR_GREEN, 5)
+                bb.vx = math.sin(math.radians(ang)) * 2.5
+                b.append(bb)
         elif L == 6:
-            for ox in [-20, 0, 20]:
-                bullets.append(Bullet(self.x + ox, self.y - 10, 3, BULLET_SPEED - 4, 'missile', (150, 255, 100), 7))
-
+            for ox in (-20, 0, 20):
+                b.append(Bullet(self.x + ox, self.y - 10, 3, BULLET_SPEED - 4, "missile",
+                                (150, 255, 100), 7, homing=0.12))
         elif L == 7:
-            for ox in [-18, 18]:
-                b = Bullet(self.x + ox, self.y - 12, 2, BULLET_SPEED + 1, 'electric', COLOR_PURPLE, 6)
-                b.vx = random.uniform(-1.5, 1.5)
-                bullets.append(b)
-
-        else:  # L == 8
-            for ox in [-28, 0, 28]:
-                bullets.append(Bullet(self.x + ox, self.y - 14, 2, BULLET_SPEED + 9, 'laser', (255, 100, 255), 3))
-
-        return bullets
+            for ox in (-18, 18):
+                bb = Bullet(self.x + ox, self.y - 12, 2, BULLET_SPEED + 1, "electric", COLOR_PURPLE, 6, pierce=1)
+                bb.vx = random.uniform(-1.5, 1.5)
+                b.append(bb)
+        else:
+            for ox in (-28, 0, 28):
+                b.append(Bullet(self.x + ox, self.y - 14, 2, BULLET_SPEED + 9, "laser", (255, 100, 255), 3, pierce=1))
+        return b
 
     def upgrade(self):
         if self.level < self.MAX_LEVEL:
             self.level += 1
-            self.side *= -1
+        self.side *= -1
 
     def draw(self, surface):
         if self.sprite:
-            rect = self.sprite.get_rect(center=(int(self.x), int(self.y)))
-            surface.blit(self.sprite, rect)
+            surface.blit(self.sprite, self.sprite.get_rect(center=(int(self.x), int(self.y))))
         else:
             pygame.draw.circle(surface, (40, 180, 40), (int(self.x), int(self.y)), self.radius)
             pygame.draw.circle(surface, COLOR_WHITE, (int(self.x), int(self.y)), self.radius, 2)
-
-            glow_r = self.radius + int(math.sin(self.pulse) * 5) + 4
-            glow = pygame.Surface((glow_r * 2, glow_r * 2), pygame.SRCALPHA)
-            pygame.draw.circle(glow, (0, 255, 0, 50), (glow_r, glow_r), glow_r)
-            surface.blit(glow, (int(self.x) - glow_r, int(self.y) - glow_r))
-
-            w = int(math.sin(self.pulse * 2) * 6)
-            pygame.draw.line(surface, COLOR_GREEN,
-                             (self.x - self.radius, self.y),
-                             (self.x - self.radius - 12, self.y + w), 3)
-            pygame.draw.line(surface, COLOR_GREEN,
-                             (self.x + self.radius, self.y),
-                             (self.x + self.radius + 12, self.y - w), 3)
-
             pygame.draw.circle(surface, COLOR_WHITE, (int(self.x), int(self.y - 3)), 5)
             pygame.draw.circle(surface, (0, 200, 0), (int(self.x), int(self.y - 3)), 2)
-        
-        pulse_alpha = int(30 + 20 * math.sin(self.pulse))
-        draw_glow(surface, self.x, self.y, 25, (0, 255, 100), pulse_alpha)
+
+        w = int(math.sin(self.pulse * 2) * 6)
+        pygame.draw.line(surface, COLOR_GREEN, (self.x - self.radius, self.y),
+                         (self.x - self.radius - 12, self.y + w), 3)
+        pygame.draw.line(surface, COLOR_GREEN, (self.x + self.radius, self.y),
+                         (self.x + self.radius + 12, self.y - w), 3)
+        draw_glow(surface, self.x, self.y, 25, (0, 255, 100), int(30 + 20 * math.sin(self.pulse)))
