@@ -24,7 +24,7 @@ class Player:
         self.target_x = self.x
         self.target_y = self.y
         self.drone = None
-        self.upgrades = {}
+        self.anim_t = 0.0
         self.engine_trail = Trail(max_length=20, color=(0, 200, 255), width=6)
         self.hit_flash = 0
 
@@ -51,6 +51,7 @@ class Player:
 
     # -------------------------------------------------------- апдейт
     def update(self, keys=None):
+        self.anim_t += 0.18
         speed_k = self.slow_factor * (PLAYER_FOCUS_FACTOR if self.focus else 1.0)
 
         if self.control == "keyboard" and keys is not None:

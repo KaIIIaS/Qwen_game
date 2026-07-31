@@ -20,7 +20,8 @@ from utils import (Background, Button, ScreenShake, clamp, draw_panel, draw_prog
                    draw_text, get_font, lerp_color, load_sprite)
 from wave import WaveDirector, endless_wave
 from station import Station
-from moving_background import MovingBackdrop
+from moving_background import MovingBackground
+from music import Music
 
 MENU_STATES = ("main", "campaign", "settings", "help")
 
@@ -31,6 +32,7 @@ class Game:
         pygame.init()
         self.config = Config()
         self.audio = Audio(self.config)
+        self.music = Music(self.config)
 
         self.screen = None
         self.apply_display(first=True)
@@ -46,7 +48,7 @@ class Game:
 
         self.menus = Menus(self)
         self.station = Station(self)
-        self.backdrop = MovingBackdrop()
+        self.backdrop = MovingBackground()
         self.state = "main"
         self.menus.build("main")
 
@@ -116,7 +118,8 @@ class Game:
         self.level_id = level_id
         self.level = campaign.get_level(level_id)
         self.background.set_theme(self.level["theme"])
-        self.backdrop.set("ruins" if level_id in (2,5) else "asteroids")
+        self.backdrop.set("ruins" if level_id in (2, 5, 7) else "asteroids")
+        self.music.choose("battle")
         self.state = "briefing"
         self.phase_timer = 0.0
 
@@ -124,18 +127,20 @@ class Game:
         self.mode = "endless"
         self.level = None
         self.background.set_theme((150, 90, 200))
+        self.backdrop.set("asteroids")
+        self.music.choose("ambient")
         self.begin_run()
 
     def begin_run(self):
         d = self.config.difficulty
         self.player = Player(lives=d["lives"])
-        skin=self.config.progress.get("skin","player")
-        if skin!="player": self.player.sprite=load_sprite(skin,(PLAYER_SIZE+24,PLAYER_SIZE+34)) or self.player.sprite
-        self.player.control = self.config.opt["control"]
-        up=self.config.progress.get("upgrades",{})
+        up=self.config.progress.get("upgrades", {})
         self.player.lives=min(5,self.player.lives+int(up.get("hull",0)))
         self.player.speed *= 1.0 + .025*int(up.get("ship_speed",0))
-        self.player.weapon.level=min(self.player.weapon.MAX_LEVEL,self.player.weapon.level+int(up.get("power",0)))
+        self.player.weapon.level=min(self.player.weapon.MAX_LEVEL, self.player.weapon.level+int(up.get("power",0)))
+        skin=self.config.progress.get("skin", "player")
+        if skin != "player": self.player.sprite=load_sprite(skin,(PLAYER_SIZE+24,PLAYER_SIZE+34)) or self.player.sprite
+        self.player.control = self.config.opt["control"]
         self.bullets = []
         self.enemies = []
         self.enemy_bullets = []
@@ -174,7 +179,7 @@ class Game:
             self.wave_number += 1
             n = self.wave_number
             if n % 5 == 0:
-                key = list(("warlord", "broodmother", "chrome", "frost", "omega", "spider", "volcano"))[(n // 5 - 1) % 5]
+                key = list(("warlord", "broodmother", "chrome", "frost", "omega"))[(n // 5 - 1) % 5]
                 self.start_boss(key, endless_scale=1.0 + 0.28 * ((n - 1) // 25))
                 return
             scale = 1.0 + 0.045 * n
@@ -195,6 +200,7 @@ class Game:
         self._boss_key = key
         self._boss_scale = endless_scale
         self.audio.play("warning", 1.0)
+        self.music.choose("boss")
         cls = get_boss(key)
         self.banner("ВНИМАНИЕ", COLOR_RED, BOSS_WARNING_TIME, sub=cls.NAME)
 
@@ -229,7 +235,9 @@ class Game:
         self.audio.play("bomb", 1.0)
         self.shake.shake(20)
         self.flash = 1.0
-        self.particles.shockwave(p.x, p.y, COLOR_WHITE, max(settings.SCREEN_WIDTH, 900), 40, 20)
+        # Бомба больше не оставляет жёсткое кольцо: только расширяющийся дым, который затухает.
+        self.particles.spawn_smoke(p.x, p.y, (150, 175, 205), 80)
+        self.particles.spawn_ring(p.x, p.y, (170, 190, 220), 32, 4, 45, 6)
         self.enemy_bullets = []
         for e in self.enemies[:]:
             self.particles.spawn_explosion(e.x, e.y, e.color, 12)
@@ -245,7 +253,7 @@ class Game:
     # ============================================================ смерть врага
     def on_enemy_killed(self, e):
         self.kills += 1
-        self.config.progress["coins"] = self.config.progress.get("coins",0) + max(1, int(e.score/100))
+        self.config.progress["coins"] = self.config.progress.get("coins",0) + max(1,int(e.score/100))
         if random.random() < 0.035: self.config.progress["faberge"] = self.config.progress.get("faberge",0) + 1
         self.particles.spawn_explosion(e.x, e.y, e.color, 22)
         self.particles.spawn_sparks(e.x, e.y, COLOR_WHITE, 10)
@@ -546,9 +554,6 @@ class Game:
             if not self.enemies and not mines:
                 bonus = int((80 * max(1, self.wave_number)) * self.combo_multiplier)
                 self.player.score += bonus
-                self.config.progress["coins"] = self.config.progress.get("coins",0) + 10 + self.wave_number
-                if random.random() < 0.08: self.config.progress["faberge"] = self.config.progress.get("faberge",0) + 1
-                self.config.save()
                 self.float_text("ВОЛНА ЗАЧИЩЕНА  +%d" % bonus, settings.SCREEN_WIDTH // 2,
                                 settings.SCREEN_HEIGHT * 0.42, COLOR_GOLD, 38, 110)
                 self.audio.play("select", 0.6)
@@ -825,8 +830,7 @@ class Game:
         elif action == "endless":
             self.start_endless()
         elif action == "station":
-            self.state = "station"
-            self.station.build()
+            self.state="station"; self.station.build()
         elif action == "settings":
             self.state = "settings"
             self.menus.build("settings")
@@ -859,9 +863,11 @@ class Game:
             pos = event.pos
             if self.state == "station":
                 action=self.station.click(pos)
-                if action=="back": self.go_menu()
+                if action == "back": self.go_menu()
+                elif action == "skins": self.station.tab="skins"; self.station.build()
+                elif action == "upgrades": self.station.tab="upgrades"; self.station.build()
                 elif action and action.startswith("buy:"): self.station.buy(action.split(":",1)[1])
-                elif action and action.startswith("skin:"): self.station.select_skin(action.split(":",1)[1])
+                elif action and action.startswith("skin:"): self.station.skin(action.split(":",1)[1])
             elif self.state in MENU_STATES:
                 self.handle_menu_action(self.menus.click(pos))
             elif self.state == "paused":

@@ -23,11 +23,7 @@ _DEFAULTS = {
         "endless_best_score": 0,
         "endless_best_wave": 0,
         "total_kills": 0,
-        "coins": 0,
-        "faberge": 0,
-        "upgrades": {},
-        "skins": ["player"],
-        "skin": "player",
+        "coins": 0, "faberge": 0, "upgrades": {}, "skins": ["player"], "skin": "player",
     },
 }
 

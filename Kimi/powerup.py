@@ -84,7 +84,7 @@ class PowerUp:
         if t == "weapon":
             player.weapon.upgrade()
         elif t == "life":
-            player.lives = min(5, player.lives + 1)
+            player.lives += 1
         elif t == "score":
             player.score += 500
         elif t == "drone":

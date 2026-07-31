@@ -70,6 +70,7 @@ class Enemy:
         self.spawn_scale = 0.0
         self.spawn_anim_speed = 0.08
         self.angle = 0
+        self.anim_t = random.random()*6.28
         self.phase = phase if phase else random.uniform(0, math.pi * 2)
         self.time = random.uniform(0, math.pi * 2)
         self.amp = random.randint(40, 150)
@@ -204,6 +205,7 @@ class Enemy:
             self.y += self.speed * 0.75
 
         self.angle += 2
+        self.anim_t += 0.12
 
     def update(self, player=None):
         """Возвращает список вражеских снарядов, созданных в этом кадре."""
@@ -253,7 +255,8 @@ class Enemy:
                 flash.fill((255, 255, 255), special_flags=pygame.BLEND_ADD)
                 surface.blit(flash, flash.get_rect(center=(int(self.x), int(self.y))))
             else:
-                surface.blit(sprite, sprite.get_rect(center=(int(self.x), int(self.y))))
+                bob = math.sin(self.anim_t) * 3
+                surface.blit(sprite, sprite.get_rect(center=(int(self.x), int(self.y + bob))))
         else:
             body = (255, 255, 255) if self.hit_flash > 0 and (self.hit_flash // 2) % 2 == 0 else self.color
             pygame.draw.ellipse(surface, body, (int(self.x - self.radius), int(self.y - self.radius // 2),

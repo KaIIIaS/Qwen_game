@@ -29,7 +29,7 @@ class Bullet:
         self.sprite = load_sprite("bullet_%s" % btype, (radius * 3, radius * 4))
         self.electric_jitter = 0
         self.trail = Trail(max_length=8, color=color, width=radius)
-        self.rotation = 0
+        self.rotation = random.uniform(0,360)
         self.target = None
 
     def _seek(self, enemies):
@@ -56,7 +56,7 @@ class Bullet:
         self.x += self.vx
         self.y -= self.speed
         self.electric_jitter += 1
-        self.rotation += 5
+        self.rotation += 7
         self.trail.add(self.x, self.y + self.radius)
         if self.y < -80 or self.x < -80 or self.x > settings.SCREEN_WIDTH + 80:
             self.active = False
