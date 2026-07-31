@@ -867,7 +867,16 @@ class Game:
                 elif action == "skins": self.station.tab="skins"; self.station.build()
                 elif action == "upgrades": self.station.tab="upgrades"; self.station.build()
                 elif action and action.startswith("buy:"): self.station.buy(action.split(":",1)[1])
-                elif action and action.startswith("skin:"): self.station.skin(action.split(":",1)[1])
+                elif action and action.startswith("skin:"):
+                    key = action.split(":",1)[1]
+                    try:
+                        ok = self.station.select_skin(key)
+                        if ok and self.player is not None:
+                            img = load_sprite(key, (PLAYER_SIZE + 24, PLAYER_SIZE + 34))
+                            if img is not None: self.player.sprite = img
+                    except Exception:
+                        # Некорректный/отсутствующий ассет не должен закрывать игру.
+                        pass
             elif self.state in MENU_STATES:
                 self.handle_menu_action(self.menus.click(pos))
             elif self.state == "paused":

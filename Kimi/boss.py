@@ -834,8 +834,16 @@ class BossVolcano(Boss):
     def atk_beam(self):
         self.hazard(Beam(random.uniform(100,settings.SCREEN_WIDTH-100),100,800,1400,self.COLOR)); yield self._w(950)
 
+
+class BossStorm(BossSpider):
+    NAME='ШТОРМОВАЯ МАТКА'; TITLE='Электрический рой'; SCORE=52000; COLOR=(70,220,255)
+class BossSiege(BossVolcano):
+    NAME='ОСАДНЫЙ КОЛОСС'; TITLE='Последняя крепость'; SCORE=60000; COLOR=(255,150,70)
+class BossMoon(BossWarlord):
+    NAME='ЛУННЫЙ КЛАК'; TITLE='Тёмная сторона стаи'; SCORE=70000; COLOR=(170,150,255)
+
 # ================================================================ реестр
-BOSS_LIST = [BossWarlord, BossBroodmother, BossChrome, BossFrost, BossOmega, BossSpider, BossVolcano]
+BOSS_LIST = [BossWarlord, BossBroodmother, BossChrome, BossFrost, BossOmega, BossSpider, BossVolcano, BossStorm, BossSiege, BossMoon]
 BOSSES = {
     "warlord": BossWarlord,
     "broodmother": BossBroodmother,
@@ -844,6 +852,9 @@ BOSSES = {
     "omega": BossOmega,
     "spider": BossSpider,
     "volcano": BossVolcano,
+    "storm": BossStorm,
+    "siege": BossSiege,
+    "moon": BossMoon,
 }
 
 

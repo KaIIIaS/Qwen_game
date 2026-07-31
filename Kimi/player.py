@@ -107,8 +107,9 @@ class Player:
             pygame.draw.polygon(surface, COLOR_WHITE, pts, 2)
             pygame.draw.circle(surface, COLOR_WHITE, (int(self.x), int(self.y)), 8)
 
-        flame_h = 14 + int(math.sin(self.flame_timer) * 7)
-        pygame.draw.polygon(surface, COLOR_ORANGE, [
+        if not self.sprite:
+            flame_h = 14 + int(math.sin(self.flame_timer) * 7)
+            pygame.draw.polygon(surface, COLOR_ORANGE, [
             (self.x - 10, self.y + self.radius),
             (self.x + 10, self.y + self.radius),
             (self.x, self.y + self.radius + flame_h)])

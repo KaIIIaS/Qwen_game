@@ -40,6 +40,11 @@ class Config:
                 raw = json.load(fh)
             for section in ("options", "progress"):
                 self.data[section].update(raw.get(section, {}))
+            self.data["progress"].setdefault("coins", 0)
+            self.data["progress"].setdefault("faberge", 0)
+            self.data["progress"].setdefault("upgrades", {})
+            self.data["progress"].setdefault("skins", ["player"])
+            self.data["progress"].setdefault("skin", "player")
         except Exception:
             pass
 
