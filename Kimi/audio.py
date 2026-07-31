@@ -6,6 +6,7 @@ import math
 import random
 
 import pygame
+import settings
 
 try:
     import numpy as np
@@ -44,6 +45,7 @@ class Audio:
             self.ok = False
             return
         self._build()
+        self._load_assets()
 
     # ------------------------------------------------------------ синтез
     def _make(self, samples):
@@ -85,6 +87,15 @@ class Audio:
         s["bomb"] = self._tone(120, 900, 0.6, "saw", 0.5, 0.02, 0.7)
         s["wave"] = self._tone(420, 900, 0.3, "sine", 0.0, 0.02, 0.6)
         s["laser"] = self._tone(1700, 500, 0.3, "saw", 0.15, 0.01, 0.7)
+
+
+    def _load_assets(self):
+        import os
+        for name in ("shoot","shoot_big","hit","explode","boss_explode","powerup","life","hurt","warning","click","select","bomb","wave","laser","coin"):
+            path=os.path.join(settings.ASSETS_DIR,"sfx",name+".wav")
+            if os.path.exists(path):
+                try: self.sounds[name]=pygame.mixer.Sound(path)
+                except Exception: pass
 
     # ------------------------------------------------------------ api
     def play(self, name, volume=1.0, pitch_jitter=True):

@@ -36,8 +36,9 @@ class Menus:
                    subtitle="5 секторов · 5 боссов"),
             Button(x, y + gap, bw, bh, "БЕСКОНЕЧНЫЙ РЕЖИМ", (200, 120, 40), 32, value="endless",
                    subtitle=("рекорд: волна %d" % best) if best else "выживай сколько сможешь"),
-            Button(x, y + gap * 2, bw, bh, "НАСТРОЙКИ", (80, 90, 120), 34, value="settings"),
-            Button(x, y + gap * 3, bw, bh, "ВЫХОД", (170, 55, 55), 34, value="quit"),
+            Button(x, y + gap * 2, bw, bh, "СТАНЦИЯ", (100, 75, 160), 34, value="station", subtitle="апгрейды и скины"),
+            Button(x, y + gap * 3, bw, bh, "НАСТРОЙКИ", (80, 90, 120), 34, value="settings"),
+            Button(x, y + gap * 4, bw, bh, "ВЫХОД", (170, 55, 55), 34, value="quit"),
         ]
 
     def _build_campaign(self, W, H):

@@ -643,8 +643,8 @@ class BossFrost(Boss):
     TITLE = "Дыхание абсолютного нуля"
     SPRITE = "boss_frost"
     BASE_HP = 860
-    WIDTH = 560
-    HEIGHT = 320
+    WIDTH = 800
+    HEIGHT = 380
     COLOR = COLOR_ICE
     SCORE = 30000
 
@@ -808,14 +808,46 @@ class BossOmega(Boss):
             yield self._w(60)
 
 
+
+class BossSpider(Boss):
+    NAME = "ПАУК-НАСЕДКА"; TITLE = "Восемь ног, один ужас"; SPRITE = "boss_spider"; BASE_HP = 980; WIDTH = 520; HEIGHT = 430; COLOR = (220,70,180); SCORE = 38000
+    def attacks_for_phase(self):
+        return [(self.atk_web,1800,3),(self.atk_eggs,2000,3),(self.atk_radial,1700,2)] + ([(self.atk_summon,2500,2)] if self.phase>=2 else [])
+    def atk_web(self):
+        for x in (settings.SCREEN_WIDTH*.25,settings.SCREEN_WIDTH*.5,settings.SCREEN_WIDTH*.75):
+            self.hazard(Beam(x,55,700,900,self.COLOR)); yield self._w(340)
+    def atk_eggs(self):
+        for _ in range(18):
+            a=self.aim()+random.uniform(-.35,.35); self.shoot(self.x,self.y,a,5.4,'orb',self.COLOR,10); yield self._w(90)
+    def atk_radial(self):
+        for _ in range(5): self.fire_radial(22,5.1,random.random(),'orb',self.COLOR,10); yield self._w(300)
+    def atk_summon(self):
+        self.summon('kamikaze',8,'kamikaze',600); yield self._w(500)
+
+class BossVolcano(Boss):
+    NAME = "ВУЛКАНИЧЕСКИЙ РОКЕР"; TITLE = "Сердце из лавы"; SPRITE = "boss_volcano"; BASE_HP = 1100; WIDTH = 650; HEIGHT = 360; COLOR = (255,100,30); SCORE = 46000
+    def attacks_for_phase(self):
+        return [(self.atk_magma,1800,3),(self.atk_ring,1900,3),(self.atk_beam,2200,2)] + ([(self.atk_eruption,2700,3)] if self.phase>=2 else [])
+    def atk_magma(self):
+        for _ in range(24):
+            a=self.aim()+random.uniform(-.6,.6); self.shoot(self.x,self.y,a,6.4,'orb',self.COLOR,11); yield self._w(75)
+    def atk_ring(self):
+        for i in range(4): self.fire_radial(20+i*4,4.8+i*.3,i*.2,'orb',(255,190,50),10); yield self._w(350)
+    def atk_beam(self):
+        self.hazard(Beam(random.uniform(100,settings.SCREEN_WIDTH-100),100,800,1400,self.COLOR)); yield self._w(900)
+    def atk_eruption(self):
+        self.game.banner('ИЗВЕРЖЕНИЕ!',self.COLOR,1000); self.fire_radial(36,6.3,0,'orb',(255,220,70),11); yield self._w(600)
+
 # ================================================================ реестр
-BOSS_LIST = [BossWarlord, BossBroodmother, BossChrome, BossFrost, BossOmega]
+BOSS_LIST = [BossWarlord, BossBroodmother, BossChrome, BossFrost, BossOmega, BossSpider, BossVolcano]
 BOSSES = {
     "warlord": BossWarlord,
     "broodmother": BossBroodmother,
     "chrome": BossChrome,
     "frost": BossFrost,
     "omega": BossOmega,
+    "spider": BossSpider,
+    "volcano": BossVolcano,
 }
 
 

@@ -15,7 +15,7 @@ class Player:
         self.y = settings.SCREEN_HEIGHT - 180
         self.speed = PLAYER_SPEED
         self.radius = PLAYER_SIZE // 2
-        self.lives = PLAYER_LIVES if lives is None else lives
+        self.lives = min(5, PLAYER_LIVES if lives is None else lives)
         self.score = 0
         self.weapon = WeaponSystem()
         self.invulnerable_until = 0
@@ -24,6 +24,7 @@ class Player:
         self.target_x = self.x
         self.target_y = self.y
         self.drone = None
+        self.upgrades = {}
         self.engine_trail = Trail(max_length=20, color=(0, 200, 255), width=6)
         self.hit_flash = 0
 

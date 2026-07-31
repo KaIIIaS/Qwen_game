@@ -19,6 +19,8 @@ from powerup import PowerUp
 from utils import (Background, Button, ScreenShake, clamp, draw_panel, draw_progress_bar,
                    draw_text, get_font, lerp_color, load_sprite)
 from wave import WaveDirector, endless_wave
+from station import Station
+from moving_background import MovingBackdrop
 
 MENU_STATES = ("main", "campaign", "settings", "help")
 
@@ -43,6 +45,8 @@ class Game:
         self.apply_particles()
 
         self.menus = Menus(self)
+        self.station = Station(self)
+        self.backdrop = MovingBackdrop()
         self.state = "main"
         self.menus.build("main")
 
@@ -112,6 +116,7 @@ class Game:
         self.level_id = level_id
         self.level = campaign.get_level(level_id)
         self.background.set_theme(self.level["theme"])
+        self.backdrop.set("ruins" if level_id in (2,5) else "asteroids")
         self.state = "briefing"
         self.phase_timer = 0.0
 
@@ -124,7 +129,13 @@ class Game:
     def begin_run(self):
         d = self.config.difficulty
         self.player = Player(lives=d["lives"])
+        skin=self.config.progress.get("skin","player")
+        if skin!="player": self.player.sprite=load_sprite(skin,(PLAYER_SIZE+24,PLAYER_SIZE+34)) or self.player.sprite
         self.player.control = self.config.opt["control"]
+        up=self.config.progress.get("upgrades",{})
+        self.player.lives=min(5,self.player.lives+int(up.get("hull",0)))
+        self.player.speed *= 1.0 + .025*int(up.get("ship_speed",0))
+        self.player.weapon.level=min(self.player.weapon.MAX_LEVEL,self.player.weapon.level+int(up.get("power",0)))
         self.bullets = []
         self.enemies = []
         self.enemy_bullets = []
@@ -163,7 +174,7 @@ class Game:
             self.wave_number += 1
             n = self.wave_number
             if n % 5 == 0:
-                key = list(("warlord", "broodmother", "chrome", "frost", "omega"))[(n // 5 - 1) % 5]
+                key = list(("warlord", "broodmother", "chrome", "frost", "omega", "spider", "volcano"))[(n // 5 - 1) % 5]
                 self.start_boss(key, endless_scale=1.0 + 0.28 * ((n - 1) // 25))
                 return
             scale = 1.0 + 0.045 * n
@@ -234,6 +245,8 @@ class Game:
     # ============================================================ смерть врага
     def on_enemy_killed(self, e):
         self.kills += 1
+        self.config.progress["coins"] = self.config.progress.get("coins",0) + max(1, int(e.score/100))
+        if random.random() < 0.035: self.config.progress["faberge"] = self.config.progress.get("faberge",0) + 1
         self.particles.spawn_explosion(e.x, e.y, e.color, 22)
         self.particles.spawn_sparks(e.x, e.y, COLOR_WHITE, 10)
         self.particles.spawn_smoke(e.x, e.y, e.color, 5)
@@ -426,6 +439,7 @@ class Game:
     def update(self):
         dt = 1000.0 / FPS
         self.background.update()
+        self.backdrop.update()
         self.particles.update()
         self.shake.update()
         if self.flash > 0:
@@ -441,6 +455,8 @@ class Game:
             if ft["life"] <= 0:
                 self.floating_texts.remove(ft)
 
+        if self.state == "station":
+            return
         if self.state in MENU_STATES:
             self.menus.update(pygame.mouse.get_pos())
             self.background.speed_mult = 0.5
@@ -530,6 +546,9 @@ class Game:
             if not self.enemies and not mines:
                 bonus = int((80 * max(1, self.wave_number)) * self.combo_multiplier)
                 self.player.score += bonus
+                self.config.progress["coins"] = self.config.progress.get("coins",0) + 10 + self.wave_number
+                if random.random() < 0.08: self.config.progress["faberge"] = self.config.progress.get("faberge",0) + 1
+                self.config.save()
                 self.float_text("ВОЛНА ЗАЧИЩЕНА  +%d" % bonus, settings.SCREEN_WIDTH // 2,
                                 settings.SCREEN_HEIGHT * 0.42, COLOR_GOLD, 38, 110)
                 self.audio.play("select", 0.6)
@@ -549,9 +568,12 @@ class Game:
         c = self.canvas
         c.fill(COLOR_BG)
         self.background.draw(c)
+        self.backdrop.draw(c)
 
         if self.state in MENU_STATES:
             self.menus.draw(c)
+        elif self.state == "station":
+            self.station.draw(c)
         elif self.state == "briefing":
             self.draw_briefing(c)
         else:
@@ -802,6 +824,9 @@ class Game:
             self.menus.build("campaign")
         elif action == "endless":
             self.start_endless()
+        elif action == "station":
+            self.state = "station"
+            self.station.build()
         elif action == "settings":
             self.state = "settings"
             self.menus.build("settings")
@@ -832,7 +857,12 @@ class Game:
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             pos = event.pos
-            if self.state in MENU_STATES:
+            if self.state == "station":
+                action=self.station.click(pos)
+                if action=="back": self.go_menu()
+                elif action and action.startswith("buy:"): self.station.buy(action.split(":",1)[1])
+                elif action and action.startswith("skin:"): self.station.select_skin(action.split(":",1)[1])
+            elif self.state in MENU_STATES:
                 self.handle_menu_action(self.menus.click(pos))
             elif self.state == "paused":
                 for b in self.pause_buttons:
@@ -861,6 +891,10 @@ class Game:
 
     def on_key(self, event):
         k = event.key
+
+        if self.state == "station":
+            if k == pygame.K_ESCAPE: self.go_menu()
+            return
 
         if self.state in MENU_STATES:
             if k == pygame.K_ESCAPE:
